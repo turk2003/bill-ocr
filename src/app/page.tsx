@@ -1,153 +1,244 @@
-'use client';
+"use client";
 
-import { useEffect } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import Sidebar from "@/components/navigator/Sidebar";
+import Navbar from "@/components/navigator/Navbar";
+import { ShineBorder } from "@/components/magicui/shine-border";
+import { LinkIcon, PaperAirplaneIcon } from "@heroicons/react/24/outline";
+import { useDirectLine } from "@/hooks/useDirectLine";
+import type { Activity } from "botframework-directlinejs";
 
-declare global {
-  interface Window {
-    WebChat: {
-      createStore: (
-        init?: unknown,
-        middleware?: (storeAPI: { dispatch: (action: WebChatAction) => void }) =>
-          (next: (action: WebChatAction) => void) =>
-            (action: WebChatAction) => void
-      ) => unknown;
-      createDirectLine: (options: { domain: string; token: string }) => unknown;
-      renderWebChat: (
-        props: {
-          directLine: unknown;
-          styleOptions?: Record<string, string>;
-          store?: unknown;
-        },
-        element: HTMLElement | null
-      ) => unknown;
-    };
-  }
-}
+type SA = { title: string; type?: string; value?: string };
 
-interface WebChatAction {
-  type: string;
-  payload?: unknown;
-  meta?: unknown;
-}
+export default function Page() {
+  const {
+    activities,
+    status,
+    typing,
+    sendMessage,
+    sendEvent,
+    sendFiles,
+    myId,
+  } = useDirectLine();
 
-export default function Home() {
+  const [input, setInput] = useState("");
+  const listRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
-    const script = document.createElement("script");
-    script.src = "https://cdn.botframework.com/botframework-webchat/latest/webchat.js";
-    script.async = true;
+    if (status === 2) {
+      sendEvent("startConversation", {
+        locale: "th-TH",
+        roles: ["member"],
+        currentURL: typeof window !== "undefined" ? window.location.href : "",
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
 
-    script.onload = () => {
-      let directLineUrl: string | null = null;
+  useEffect(() => {
+    listRef.current?.scrollTo({
+      top: listRef.current.scrollHeight,
+      behavior: "smooth",
+    });
+  }, [activities, typing]);
 
-      const tokenEndpoint =
-        "https://defaulta2339f6dbf4a44db88eccb8f27da4a.bb.environment.api.powerplatform.com/powervirtualagents/botsbyschema/cr62c_cnEQ_WkZEytvd673K9xMI/directline/token?api-version=2022-03-01-preview";
+  const onSend = async () => {
+    const text = input.trim();
+    if (!text) return;
+    await sendMessage(text);
+    setInput("");
+  };
 
-      const styleOptions = {
-        accent: "#7c3aed",
-        backgroundColor: "#181028",
-        botAvatarImage:
-          "https://powercatexternal.blob.core.windows.net/creatorkit/Assets/ChatbotLogoBlue.png",
-        bubbleBackground: "#312e81",
-        bubbleTextColor: "#fff",
-        bubbleFromUserBackground: "#a084e8",
-        bubbleFromUserTextColor: "#181028",
-        sendBoxBackground: "#181028",
-        sendBoxTextColor: "#fff",
-        sendBoxButtonColor: "#a084e8",
-        sendBoxButtonColorOnHover: "#7c3aed",
-        suggestedActionBackgroundColor: "#7c3aed",
-        suggestedActionTextColor: "#fff",
-      };
+  const onPickFiles = () => fileInputRef.current?.click();
+  const onFilesSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length) {
+      await sendFiles(files);
+      e.target.value = "";
+    }
+  };
 
-      function createCustomStore() {
-        return window.WebChat.createStore(
-          {},
-          ({ dispatch }) =>
-            (next) =>
-              (action: WebChatAction) => {
-                if (action.type === "DIRECT_LINE/CONNECT_FULFILLED") {
-                  dispatch({
-                    type: "DIRECT_LINE/POST_ACTIVITY",
-                    meta: { method: "keyboard" },
-                    payload: {
-                      activity: {
-                        channelData: { postBack: true },
-                        name: "startConversation",
-                        type: "event",
-                      },
-                    },
-                  });
-                }
-                return next(action);
-              }
-        );
-      }
-
-      const environmentEndPoint = tokenEndpoint.slice(
-        0,
-        tokenEndpoint.indexOf("/powervirtualagents")
+  const suggestedActions: SA[] = useMemo(() => {
+    const lastBot = [...activities].reverse().find((a) => {
+      if (a.from?.id === myId) return false;
+      const sa = (a as { suggestedActions?: { actions?: SA[] } })
+        .suggestedActions;
+      return (
+        typeof sa === "object" &&
+        Array.isArray(sa?.actions) &&
+        sa.actions.length > 0
       );
-      const apiVersion = tokenEndpoint
-        .slice(tokenEndpoint.indexOf("api-version"))
-        .split("=")[1];
-      const regionalChannelSettingsURL = `${environmentEndPoint}/powervirtualagents/regionalchannelsettings?api-version=${apiVersion}`;
+    });
+    return (
+      (lastBot as { suggestedActions?: { actions?: SA[] } })?.suggestedActions
+        ?.actions ?? []
+    );
+  }, [activities, myId]);
 
-      async function initializeChat() {
-        try {
-          const response = await fetch(regionalChannelSettingsURL);
-          const data: {
-            channelUrlsById: { directline?: string };
-          } = await response.json();
+  const renderBubble = (a: Activity, idx: number) => {
+    const isUser = a.from?.role !== "bot";
 
-          directLineUrl = data.channelUrlsById.directline ?? null;
-          if (!directLineUrl) throw new Error("Failed to get DirectLine URL");
+    const isMsg =
+      a.type === "message" &&
+      (a.text || (a.attachments && a.attachments.length));
+    if (!isMsg) return null;
 
-          const conversationResponse = await fetch(tokenEndpoint);
-          const conversationInfo: { token?: string } = await conversationResponse.json();
+    return (
+      <div
+        key={idx}
+        className={`w-full flex ${
+          isUser ? "justify-end" : "justify-start"
+        } mb-2`}
+      >
+        <div
+          className={`${
+            isUser ? "" : ""
+          } max-w-[80%] p-4 border rounded-2xl shadow-xs`}
+        >
+          {a.text && <div className="whitespace-pre-wrap">{a.text}</div>}
 
-          if (!conversationInfo.token) throw new Error("Failed to get conversation token");
-
-          const directLine = window.WebChat.createDirectLine({
-            domain: `${directLineUrl}v3/directline`,
-            token: conversationInfo.token,
-          });
-
-          window.WebChat.renderWebChat(
-            {
-              directLine,
-              styleOptions,
-              store: createCustomStore(),
-            },
-            document.getElementById("webchat")
-          );
-        } catch (err) {
-          console.error("Failed to initialize chat:", err);
-        }
-      }
-
-      initializeChat();
-    };
-
-    document.body.appendChild(script);
-  }, []);
+          {a.attachments?.length ? (
+            <div className="mt-2 space-y-2">
+              {a.attachments.map((att: unknown, i: number) => (
+                <AttachmentPreview key={i} att={att} />
+              ))}
+            </div>
+          ) : null}
+        </div>
+        {/* <span className="text-xs text-gray-500">
+          {a.timestamp ? new Date(a.timestamp).toLocaleString() : ""}
+        </span> */}
+      </div>
+    );
+  };
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-[#2d0036] to-[#6e2ca6] flex items-center justify-center">
-      <div className="w-full max-w-lg h-[600px] rounded-2xl shadow-2xl bg-[#181028] border-2 border-[#a084e8] flex flex-col overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center gap-3 px-6 py-4 bg-gradient-to-r from-[#7c3aed] to-[#a084e8]">
-          <img
-            src="/Logo_of_the_Provincial_Electricity_Authority_of_Thailand.svg.png"
-            alt="PEA Logo"
-            className="h-10 w-10 rounded-full bg-white"
-          />
-          <span className="text-white text-lg font-bold tracking-wide">
-            น้องบิลน้ำมัน
-          </span>
+    <div className="flex w-screen h-screen">
+      <Sidebar />
+      <div className="flex-1">
+        <Navbar status={status ? status : 0} />
+        <div className="relative w-full h-[calc(100vh-77px)] flex flex-col">
+          <div
+            ref={listRef}
+            className="flex-1 max-w-4xl w-full mx-auto overflow-y-auto py-10 "
+          >
+            {activities.map((a, i) => renderBubble(a, i))}
+
+            {typing && (
+              <div className="w-full flex justify-start">
+                <div className="px-4 py-2 rounded-2xl text-sm opacity-80 ">
+                  กำลังพิมพ์…
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="flex flex-col items-center justify-center gap-4 w-full p-3 ">
+            <div className="relative flex flex-col w-full max-w-4xl rounded-xl shadow-xl">
+              {suggestedActions.length > 0 && (
+                <div className="right-0 -top-14 absolute flex flex-wrap gap-2 pt-2">
+                  {suggestedActions.map((sa, i) => (
+                    <button
+                      key={i}
+                      className="px-3 py-1.5 text-sm rounded-lg transition border bg-white hover:bg-neutral-50 cursor-pointer shadow-lg"
+                      onClick={() => sendMessage(sa.value || sa.title)}
+                      title={sa.type || "postBack"}
+                    >
+                      {sa.title}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <ShineBorder
+                shineColor={[
+                  "#A07CFE",
+                  "#FE8FB5",
+                  "#FFBE7B",
+                  "#A07CFE",
+                  "#FE8FB5",
+                  "#FFBE7B",
+                  "#A07CFE",
+                  "#FE8FB5",
+                  "#FFBE7B",
+                ]}
+                borderWidth={2}
+              />
+              <div className="flex items-center justify-between p-4 rounded-t-xl">
+                <textarea
+                  placeholder="พิมพ์ข้อความ..."
+                  className="flex-1 border-none outline-none bg-transparent resize-none min-h-[48px] max-h-[120px]"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) =>
+                    e.key === "Enter" && !e.shiftKey
+                      ? (e.preventDefault(), onSend())
+                      : undefined
+                  }
+                />
+                <button
+                  onClick={onSend}
+                  className="px-4 py-2 cursor-pointer rounded-lg hover:bg-white/10 transition"
+                  title="ส่งข้อความ"
+                >
+                  <PaperAirplaneIcon className="h-5 w-5" />
+                </button>
+              </div>
+              <hr />
+              <div className="flex items-center p-4 rounded-b-xl">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  className="hidden"
+                  onChange={onFilesSelected}
+                  accept="image/*,.pdf,.doc,.docx,.xlsx,.csv,.txt"
+                />
+                <button
+                  className="flex items-center gap-2 cursor-pointer /90 hover: transition"
+                  onClick={onPickFiles}
+                  title="แนบไฟล์"
+                >
+                  <LinkIcon className="h-5 w-5" />
+                  <span>Attach</span>
+                </button>
+              </div>
+            </div>
+            <span className="text-sm text-gray-400">🎉 For DEMO naja...</span>
+          </div>
         </div>
-        {/* Chat area */}
-        <div id="webchat" className="flex-1 overflow-y-auto" />
       </div>
-    </main>
+    </div>
+  );
+}
+
+function AttachmentPreview({ att }: { att: unknown }) {
+  console.log("Attachment:", att);
+
+  const attachment = att as {
+    contentType?: string;
+    contentUrl?: string;
+    name?: string;
+  };
+  const ct = (attachment.contentType || "").toLowerCase();
+  if (ct.startsWith("image/")) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={attachment.contentUrl}
+        alt={attachment.name || "image"}
+        className="max-w-full rounded-lg border border-white/10"
+      />
+    );
+  }
+  return (
+    <a
+      href={attachment.contentUrl}
+      target="_blank"
+      rel="noreferrer"
+      className="text-sm underline break-all"
+      title={attachment.name || "attachment"}
+    >
+      {attachment.name || attachment.contentUrl}
+    </a>
   );
 }
