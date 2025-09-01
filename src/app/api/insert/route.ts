@@ -25,7 +25,6 @@ export async function POST(req: NextRequest) {
     "สถานี",
     "จำนวน",
     "ราคา",
-    "เป็นเงิน",
     "เงินทั้งสิ้น",
     "วันที่",
     "ภาษี",
