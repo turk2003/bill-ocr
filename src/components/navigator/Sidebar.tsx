@@ -5,11 +5,8 @@ import {
   ChatBubbleLeftIcon,
   MagnifyingGlassIcon,
 } from "@heroicons/react/16/solid";
-import { useRouter } from "next/navigation";
 
 export default function Sidebar() {
-  const router = useRouter();
-
   return (
     <div className="flex flex-col justify-between w-72 h-full border-r border-neutral-300 bg-neutral-50">
       <div className="flex flex-col gap-8 px-4 py-6 ">
@@ -22,7 +19,7 @@ export default function Sidebar() {
         </div>
         <div className="flex flex-col gap-2">
           <button
-            onClick={() => router.refresh()}
+            onClick={() => window.location.reload()}
             className="flex items-center gap-1 px-3 h-[42px] rounded-xl hover:bg-neutral-200 cursor-pointer"
           >
             <ChatBubbleLeftIcon className="h-5 w-5 text-neutral-600" />
