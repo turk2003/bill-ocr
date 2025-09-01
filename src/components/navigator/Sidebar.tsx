@@ -5,16 +5,25 @@ import {
   ChatBubbleLeftIcon,
   MagnifyingGlassIcon,
 } from "@heroicons/react/16/solid";
+import { motion } from "framer-motion";
 import { useState } from "react";
 
 export default function Sidebar() {
   const [open, setOpen] = useState(false);
 
   return (
-    <div
-      className={`flex flex-col justify-between ${
-        open ? "w-72" : "w-16"
-      } h-full border-r border-neutral-300 bg-neutral-50`}
+    <motion.div
+      layout
+      initial={{ x: -100, width: "4rem" }}
+      animate={{ x: 0, width: open ? "18rem" : "4rem" }}
+      exit={{ x: -100 }}
+      transition={{
+        type: "spring",
+        stiffness: 300,
+        damping: 30,
+        duration: 0.25,
+      }}
+      className={`flex flex-col justify-between h-full border-r border-neutral-300 bg-neutral-50`}
     >
       <div className={`flex flex-col gap-8 ${open ? "px-4" : "px-2"} py-6`}>
         <div
@@ -24,7 +33,9 @@ export default function Sidebar() {
         >
           <div className="flex items-center gap-1">
             <div className="h-6 w-6 bg-neutral-600 rounded-full"></div>
-            {open && <div className="text-xl font-bold">RPA Automation</div>}
+            {open && (
+              <div className="text-xl font-bold truncate">RPA Automation</div>
+            )}
           </div>
           <button
             className="p-2 hover:bg-neutral-200 rounded-lg cursor-pointer"
@@ -41,7 +52,11 @@ export default function Sidebar() {
             }`}
           >
             <ChatBubbleLeftIcon className="h-5 w-5 text-neutral-600" />
-            {open && <span className="ml-2 text-sm font-medium">New Chat</span>}
+            {open && (
+              <span className="ml-2 text-sm font-medium truncate">
+                New Chat
+              </span>
+            )}
           </button>
           <div
             className={`flex gap-1 items-center border border-neutral-300 px-3 py-2 rounded-lg ${
@@ -62,12 +77,12 @@ export default function Sidebar() {
       <div className="flex items-center gap-2 px-4 py-3 border-t border-neutral-300">
         <div className="h-8 w-8 bg-neutral-600 rounded-full"></div>
         {open && (
-          <div className="flex flex-col">
+          <div className="flex flex-col truncate">
             <div className="text-sm font-semibold">Heart888</div>
             <div className="text-sm text-neutral-500">heart@pea.co.th</div>
           </div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }

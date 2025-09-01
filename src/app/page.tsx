@@ -4,9 +4,14 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import Sidebar from "@/components/navigator/Sidebar";
 import Navbar from "@/components/navigator/Navbar";
 import { ShineBorder } from "@/components/magicui/shine-border";
-import { LinkIcon, PaperAirplaneIcon } from "@heroicons/react/24/outline";
+import {
+  ChevronDownIcon,
+  LinkIcon,
+  PaperAirplaneIcon,
+} from "@heroicons/react/24/outline";
 import { useDirectLine } from "@/hooks/useDirectLine";
-import type { Activity } from "botframework-directlinejs";
+import RenderBubble from "@/components/bubbles/RenderBubble";
+import { AnimatePresence, motion } from "framer-motion";
 
 type SA = { title: string; type?: string; value?: string };
 
@@ -22,6 +27,8 @@ export default function Page() {
   } = useDirectLine();
 
   const [input, setInput] = useState("");
+  const [saOpen, setSaOpen] = useState(true);
+
   const listRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -76,43 +83,6 @@ export default function Page() {
     );
   }, [activities, myId]);
 
-  const renderBubble = (a: Activity, idx: number) => {
-    const isUser = a.from?.role !== "bot";
-
-    const isMsg =
-      a.type === "message" &&
-      (a.text || (a.attachments && a.attachments.length));
-    if (!isMsg) return null;
-
-    return (
-      <div
-        key={idx}
-        className={`w-full flex ${
-          isUser ? "justify-end" : "justify-start"
-        } mb-2`}
-      >
-        <div
-          className={`${
-            isUser ? "" : ""
-          } max-w-[80%] p-4 border rounded-2xl shadow-xs`}
-        >
-          {a.text && <div className="whitespace-pre-wrap">{a.text}</div>}
-
-          {a.attachments?.length ? (
-            <div className="mt-2 space-y-2">
-              {a.attachments.map((att: unknown, i: number) => (
-                <AttachmentPreview key={i} att={att} />
-              ))}
-            </div>
-          ) : null}
-        </div>
-        {/* <span className="text-xs text-gray-500">
-          {a.timestamp ? new Date(a.timestamp).toLocaleString() : ""}
-        </span> */}
-      </div>
-    );
-  };
-
   return (
     <div className="flex w-screen h-screen">
       <Sidebar />
@@ -121,33 +91,81 @@ export default function Page() {
         <div className="relative w-full h-[calc(100vh-77px)] flex flex-col p-3">
           <div
             ref={listRef}
-            className="flex-1 max-w-4xl w-full mx-auto overflow-y-auto py-10 "
+            className="flex-1 max-w-4xl w-full mx-auto overflow-y-auto pt-10 pb-16"
           >
-            {activities.map((a, i) => renderBubble(a, i))}
+            <AnimatePresence initial={false}>
+              {activities.map((a, i) => (
+                <RenderBubble key={i} a={a} idx={i} />
+              ))}
+            </AnimatePresence>
 
             {typing && (
-              <div className="w-full flex justify-start">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.18 }}
+                className="w-full flex justify-start"
+              >
                 <div className="px-4 py-2 rounded-2xl text-sm opacity-80 ">
                   กำลังพิมพ์…
                 </div>
-              </div>
+              </motion.div>
             )}
           </div>
           <div className="flex flex-col items-center justify-center gap-4 w-full">
             <div className="relative flex flex-col w-full max-w-4xl rounded-xl shadow-xl">
               {suggestedActions.length > 0 && (
-                <div className="absolute right-0 bottom-full mb-2 z-50 max-w-full max-h-40 overflow-auto flex flex-wrap gap-2 p-2 bg-white/80 backdrop-blur-sm rounded-xl shadow">
-                  {suggestedActions.map((sa, i) => (
-                    <button
-                      key={i}
-                      className="px-3 py-1.5 text-sm rounded-lg transition border bg-white hover:bg-neutral-50 cursor-pointer shadow-lg"
-                      onClick={() => sendMessage(sa.value || sa.title)}
-                      title={sa.type || "postBack"}
+                <motion.div
+                  layout
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.18 }}
+                  className="absolute right-0 bottom-full mb-2 z-50 max-w-full"
+                >
+                  <div className="flex justify-end mb-2">
+                    <motion.button
+                      onClick={() => setSaOpen((v) => !v)}
+                      whileHover={{ scale: 1.03 }}
+                      whileTap={{ scale: 0.97, rotate: -6 }}
+                      className="p-1 rounded-md bg-white/70 backdrop-blur-sm shadow-sm border border-neutral-200"
+                      title={saOpen ? "หุบ" : "ขยาย"}
                     >
-                      {sa.title}
-                    </button>
-                  ))}
-                </div>
+                      <ChevronDownIcon
+                        className={`h-4 w-4 transition-transform ${
+                          saOpen ? "rotate-0" : "rotate-180"
+                        }`}
+                      />
+                    </motion.button>
+                  </div>
+                  <AnimatePresence initial={false}>
+                    {saOpen && (
+                      <motion.div
+                        key="suggested-actions"
+                        layout
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 6 }}
+                        transition={{ duration: 0.18 }}
+                        className="z-50 max-h-40 overflow-auto flex flex-wrap gap-2 p-2 bg-white/80 backdrop-blur-sm rounded-xl shadow"
+                      >
+                        {suggestedActions.map((sa, i) => (
+                          <motion.button
+                            key={i}
+                            whileHover={{ scale: 1.03 }}
+                            whileTap={{ scale: 0.98 }}
+                            className="px-3 py-1.5 text-sm rounded-lg transition border bg-white hover:bg-neutral-50 cursor-pointer shadow-lg"
+                            onClick={() => sendMessage(sa.value || sa.title)}
+                            title={sa.type || "postBack"}
+                          >
+                            {sa.title}
+                          </motion.button>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
               )}
               <ShineBorder
                 shineColor={[
@@ -175,13 +193,15 @@ export default function Page() {
                       : undefined
                   }
                 />
-                <button
+                <motion.button
                   onClick={onSend}
+                  whileHover={{ scale: 1.04 }}
+                  whileTap={{ scale: 0.95, rotate: -10 }}
                   className="px-4 py-2 cursor-pointer rounded-lg hover:bg-white/10 transition"
                   title="ส่งข้อความ"
                 >
                   <PaperAirplaneIcon className="h-5 w-5" />
-                </button>
+                </motion.button>
               </div>
               <hr />
               <div className="flex items-center p-4 rounded-b-xl">
@@ -193,14 +213,16 @@ export default function Page() {
                   onChange={onFilesSelected}
                   accept="image/*,.pdf,.doc,.docx,.xlsx,.csv,.txt"
                 />
-                <button
+                <motion.button
                   className="flex items-center gap-2 cursor-pointer /90 hover: transition"
                   onClick={onPickFiles}
+                  whileHover={{ x: 4 }}
+                  whileTap={{ scale: 0.98 }}
                   title="แนบไฟล์"
                 >
                   <LinkIcon className="h-5 w-5" />
                   <span>Attach</span>
-                </button>
+                </motion.button>
               </div>
             </div>
             <span className="text-sm text-gray-400">🎉 For DEMO naja...</span>
@@ -208,37 +230,5 @@ export default function Page() {
         </div>
       </div>
     </div>
-  );
-}
-
-function AttachmentPreview({ att }: { att: unknown }) {
-  console.log("Attachment:", att);
-
-  const attachment = att as {
-    contentType?: string;
-    contentUrl?: string;
-    name?: string;
-  };
-  const ct = (attachment.contentType || "").toLowerCase();
-  if (ct.startsWith("image/")) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={attachment.contentUrl}
-        alt={attachment.name || "image"}
-        className="max-w-full rounded-lg border border-white/10"
-      />
-    );
-  }
-  return (
-    <a
-      href={attachment.contentUrl}
-      target="_blank"
-      rel="noreferrer"
-      className="text-sm underline break-all"
-      title={attachment.name || "attachment"}
-    >
-      {attachment.name || attachment.contentUrl}
-    </a>
   );
 }

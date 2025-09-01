@@ -15,6 +15,7 @@
     "botframework-webchat": "^4.18.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "framer-motion": "^12.23.12",
     "googleapis": "^159.0.0",
     "install": "^0.13.0",
     "lucide-react": "^0.542.0",
