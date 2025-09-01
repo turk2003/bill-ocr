@@ -37,7 +37,7 @@ export default function Navbar({ status }: Props) {
         </div>
       </div>
       <div className="flex items-center gap-4">
-        <RainbowButton>⚡️ Upgrade</RainbowButton>
+        <RainbowButton className="sm:flex hidden">⚡️ Upgrade</RainbowButton>
         <InformationCircleIcon className="h-6 w-6 text-neutral-600" />
       </div>
     </div>

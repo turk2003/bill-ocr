@@ -118,7 +118,7 @@ export default function Page() {
       <Sidebar />
       <div className="flex-1">
         <Navbar status={status ? status : 0} />
-        <div className="relative w-full h-[calc(100vh-77px)] flex flex-col">
+        <div className="relative w-full h-[calc(100vh-77px)] flex flex-col p-3">
           <div
             ref={listRef}
             className="flex-1 max-w-4xl w-full mx-auto overflow-y-auto py-10 "
@@ -133,10 +133,10 @@ export default function Page() {
               </div>
             )}
           </div>
-          <div className="flex flex-col items-center justify-center gap-4 w-full p-3 ">
+          <div className="flex flex-col items-center justify-center gap-4 w-full">
             <div className="relative flex flex-col w-full max-w-4xl rounded-xl shadow-xl">
               {suggestedActions.length > 0 && (
-                <div className="right-0 -top-14 absolute flex flex-wrap gap-2 pt-2">
+                <div className="absolute right-0 bottom-full mb-2 z-50 max-w-full max-h-40 overflow-auto flex flex-wrap gap-2 p-2 bg-white/80 backdrop-blur-sm rounded-xl shadow">
                   {suggestedActions.map((sa, i) => (
                     <button
                       key={i}
