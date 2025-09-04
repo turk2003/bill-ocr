@@ -27,6 +27,7 @@ export default function Page() {
   } = useDirectLine();
 
   const [input, setInput] = useState("");
+  const [filesTemp, setFilesTemp] = useState<File[]>([]);
   const [saOpen, setSaOpen] = useState(true);
 
   const listRef = useRef<HTMLDivElement>(null);
@@ -59,6 +60,7 @@ export default function Page() {
 
   const onPickFiles = () => fileInputRef.current?.click();
   const onFilesSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFilesTemp(Array.from(e.target.files || []));
     const files = e.target.files;
     if (files && files.length) {
       await sendFiles(files);
@@ -95,7 +97,7 @@ export default function Page() {
           >
             <AnimatePresence initial={false}>
               {activities.map((a, i) => (
-                <RenderBubble key={i} a={a} idx={i} />
+                <RenderBubble key={i} a={a} idx={i} files={filesTemp} />
               ))}
             </AnimatePresence>
 

@@ -7,9 +7,10 @@ import { motion } from "framer-motion";
 interface Props {
   a: Activity;
   idx: number;
+  files: File[];
 }
 
-export default function RenderBubble({ a, idx }: Props) {
+export default function RenderBubble({ a, idx, files }: Props) {
   const isUser = a.from?.role !== "bot";
 
   const isMsg =
@@ -45,9 +46,9 @@ export default function RenderBubble({ a, idx }: Props) {
         )}
 
         {a.attachments?.length ? (
-          <div className="mt-2 space-y-2">
+          <div className="space-y-2">
             {a.attachments.map((att: unknown, i: number) => (
-              <AttachmentPreview key={i} att={att} />
+              <AttachmentPreview key={i} att={att} files={files} />
             ))}
           </div>
         ) : null}
