@@ -32,12 +32,16 @@ export default function RenderBubble({ a, idx, files }: Props) {
       exit="exit"
       variants={bubbleVariants}
       transition={{ duration: 0.18 }}
-      className={`w-full flex ${isUser ? "justify-end" : "justify-start"} mb-2`}
+      className={`w-full flex flex-col ${
+        isUser ? "justify-end" : "justify-start"
+      } mb-2`}
     >
       <div
         className={`${
-          isUser ? "bg-gradient-to-tr from-white/6 to-white/2" : "bg-white/5"
-        } max-w-[80%] p-4 border rounded-2xl shadow-xs backdrop-blur-sm`}
+          isUser
+            ? "bg-gradient-to-tr from-white/6 to-white/2 self-end"
+            : "bg-white/5 self-start"
+        } max-w-[80%] p-4 border rounded-2xl shadow-xs backdrop-blur-sm w-fit`}
       >
         {a.text && (
           <div className="whitespace-pre-wrap text-sm leading-relaxed">
@@ -53,6 +57,14 @@ export default function RenderBubble({ a, idx, files }: Props) {
           </div>
         ) : null}
       </div>
+      <span
+        className={`${
+          isUser ? "self-end" : "self-start"
+        } text-xs text-neutral-400 mt-1`}
+      >
+        {new Date(a.timestamp ?? "").toLocaleDateString()}{" "}
+        {new Date(a.timestamp ?? "").toLocaleTimeString()}
+      </span>
     </motion.div>
   );
 }

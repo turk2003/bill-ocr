@@ -12,6 +12,8 @@ import {
 import { useDirectLine } from "@/hooks/useDirectLine";
 import RenderBubble from "@/components/bubbles/RenderBubble";
 import { AnimatePresence, motion } from "framer-motion";
+import Greeting from "@/components/modal/Greeting";
+import { parseAsBoolean, useQueryState } from "nuqs";
 
 type SA = { title: string; type?: string; value?: string };
 
@@ -26,12 +28,24 @@ export default function Page() {
     myId,
   } = useDirectLine();
 
+  const [greetingOpen, setGreetingOpen] = useQueryState(
+    "greetingOpen",
+    parseAsBoolean
+  );
+
   const [input, setInput] = useState("");
   const [filesTemp, setFilesTemp] = useState<File[]>([]);
   const [saOpen, setSaOpen] = useState(true);
 
   const listRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (greetingOpen === null || greetingOpen === false) {
+      setGreetingOpen(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (status === 2) {
@@ -52,6 +66,8 @@ export default function Page() {
   }, [activities, typing]);
 
   const onSend = async () => {
+    setGreetingOpen(false);
+
     const text = input.trim();
     if (!text) return;
     await sendMessage(text);
@@ -60,6 +76,8 @@ export default function Page() {
 
   const onPickFiles = () => fileInputRef.current?.click();
   const onFilesSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    setGreetingOpen(false);
+
     setFilesTemp(Array.from(e.target.files || []));
     const files = e.target.files;
     if (files && files.length) {
@@ -85,6 +103,10 @@ export default function Page() {
     );
   }, [activities, myId]);
 
+  if (greetingOpen === null) {
+    return;
+  }
+
   return (
     <div className="flex w-screen h-screen">
       <Sidebar />
@@ -93,8 +115,12 @@ export default function Page() {
         <div className="relative w-full h-[calc(100vh-77px)] flex flex-col p-3">
           <div
             ref={listRef}
-            className="flex-1 max-w-4xl w-full mx-auto overflow-y-auto pt-10 pb-16"
+            className="relative flex-1 max-w-4xl w-full mx-auto overflow-y-auto pt-10 pb-16 no-scrollbar"
           >
+            <Greeting
+              open={greetingOpen}
+              onClose={() => setGreetingOpen(false)}
+            />
             <AnimatePresence initial={false}>
               {activities.map((a, i) => (
                 <RenderBubble key={i} a={a} idx={i} files={filesTemp} />
